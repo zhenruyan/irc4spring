@@ -92,6 +92,27 @@ git push origin v1.0.0
 - 可以创建Release
 - 可以上传文件到Release
 
+### 权限配置
+**重要：** 如果遇到403权限错误，请按以下步骤配置：
+
+1. **仓库权限设置**：
+   - 进入仓库 Settings → Actions → General
+   - 在 "Workflow permissions" 部分选择 "Read and write permissions"
+   - 勾选 "Allow GitHub Actions to create and approve pull requests"
+
+2. **工作流权限**：
+   ```yaml
+   permissions:
+     contents: write  # 允许创建release和上传文件
+     packages: write  # 允许上传包
+     actions: read    # 允许读取actions
+     checks: write    # 允许写入检查结果
+   ```
+
+3. **Token权限**：
+   - 工作流使用默认的 `GITHUB_TOKEN`
+   - 如果需要，可以创建Personal Access Token并添加到仓库secrets
+
 ### 分支保护
 建议为main分支设置保护规则：
 - 要求Pull Request审查
@@ -102,9 +123,13 @@ git push origin v1.0.0
 
 ### 常见问题
 
-1. **Actions失败：权限不足**
-   - 检查仓库的Actions权限设置
+1. **Actions失败：权限不足 (403错误)**
+   - 检查仓库的Actions权限设置：
+     - 进入仓库 Settings → Actions → General
+     - 确保 "Allow GitHub Actions to create and approve pull requests" 已启用
+     - 确保 "Workflow permissions" 设置为 "Read and write permissions"
    - 确认GITHUB_TOKEN有足够权限
+   - 检查工作流文件中的permissions配置
 
 2. **编译失败：Java版本问题**
    - 确保使用Java 21
@@ -118,6 +143,7 @@ git push origin v1.0.0
    - 检查标签格式是否正确
    - 确认没有重复的标签
    - 检查Release权限
+   - 确保仓库有创建Release的权限
 
 ### 调试步骤
 
@@ -136,6 +162,9 @@ git push origin v1.0.0
    
    # 检查JAR文件
    java -jar target/irc-server-1.0.0.jar --help
+   
+   # 运行release测试脚本
+   ./test-release.sh
    ```
 
 3. 验证标签：

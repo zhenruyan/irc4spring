@@ -6,6 +6,12 @@ on:
       - 'v*'  # 当推送版本标签时触发 (例如: v1.0.0)
   workflow_dispatch:  # 允许手动触发
 
+permissions:
+  contents: write  # 允许创建release和上传文件
+  packages: write  # 允许上传包
+  actions: read    # 允许读取actions
+  checks: write    # 允许写入检查结果
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -62,8 +68,6 @@ jobs:
         
     - name: Create Release
       uses: softprops/action-gh-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         tag_name: ${{ steps.get_version.outputs.VERSION }}
         name: IRC4Spring ${{ steps.get_version.outputs.VERSION }}
@@ -96,7 +100,8 @@ jobs:
           ### Checksums
           See attached `.sha256` files for integrity verification.
         draft: false
-        prerelease: false
+        prerelease: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        make_latest: ${{ startsWith(github.ref, 'refs/tags/v') }}
         files: |
           irc4spring-${{ steps.get_version.outputs.VERSION }}.tar.gz
           irc4spring-${{ steps.get_version.outputs.VERSION }}.zip
