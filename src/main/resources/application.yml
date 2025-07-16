@@ -1,0 +1,31 @@
+server:
+  port: 8081
+
+irc:
+  server:
+    name: "IRC4Spring"
+    version: "1.0.0"
+    port: 6667
+    max-connections: 1000
+    max-channels: 100
+    max-nickname-length: 30
+    max-channel-name-length: 50
+    motd: |
+      欢迎来到IRC4Spring服务器！
+      这是一个基于Spring Boot和Java 21虚拟线程的IRC服务器。
+      
+  admin:
+    default-username: "admin"
+    default-password: "admin123"
+    
+  auth:
+    require-registration: false
+    session-timeout: 3600000  # 1小时
+    allow-unregistered-channels: true  # 允许非注册用户进入/创建频道
+
+logging:
+  level:
+    com.irc4spring: DEBUG
+    org.springframework: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n" 
