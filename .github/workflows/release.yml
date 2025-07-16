@@ -1,0 +1,105 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'  # 当推送版本标签时触发 (例如: v1.0.0)
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK 21
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+        
+    - name: Cache Maven dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+        
+    - name: Build with Maven
+      run: mvn clean compile test package -DskipTests=false
+      
+    - name: Get version from tag
+      id: get_version
+      run: |
+        if [[ $GITHUB_REF == refs/tags/* ]]; then
+          echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        else
+          echo "VERSION=snapshot-$(date +%Y%m%d-%H%M%S)" >> $GITHUB_OUTPUT
+        fi
+        
+    - name: Create release directory
+      run: |
+        mkdir -p release
+        cp target/irc-server-1.0.0.jar release/
+        cp start.sh release/
+        cp README.md release/
+        cp README_zh.md release/
+        cp src/main/resources/application.yml release/application.yml.example
+        
+    - name: Create release archive
+      run: |
+        cd release
+        tar -czf ../irc4spring-${{ steps.get_version.outputs.VERSION }}.tar.gz *
+        zip -r ../irc4spring-${{ steps.get_version.outputs.VERSION }}.zip *
+        cd ..
+        
+    - name: Generate checksums
+      run: |
+        sha256sum irc4spring-${{ steps.get_version.outputs.VERSION }}.tar.gz > irc4spring-${{ steps.get_version.outputs.VERSION }}.tar.gz.sha256
+        sha256sum irc4spring-${{ steps.get_version.outputs.VERSION }}.zip > irc4spring-${{ steps.get_version.outputs.VERSION }}.zip.sha256
+        
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.get_version.outputs.VERSION }}
+        name: IRC4Spring ${{ steps.get_version.outputs.VERSION }}
+        body: |
+          ## IRC4Spring ${{ steps.get_version.outputs.VERSION }}
+          
+          ### Features
+          - ✅ Java 21 Virtual Threads IRC Server
+          - ✅ Complete user authentication and permission management
+          - ✅ Admin operations with REST API
+          - ✅ Standard IRC protocol support
+          - ✅ Channel management functionality
+          - ✅ Real-time messaging
+          
+          ### Download
+          - `irc4spring-${{ steps.get_version.outputs.VERSION }}.tar.gz` - Linux/macOS package
+          - `irc4spring-${{ steps.get_version.outputs.VERSION }}.zip` - Windows package
+          - `irc4spring-${{ steps.get_version.outputs.VERSION }}.jar` - Standalone JAR
+          
+          ### Quick Start
+          1. Download and extract the package
+          2. Run `java -jar irc-server-1.0.0.jar` or `./start.sh`
+          3. Connect to `localhost:6667` with IRC client
+          4. Default admin: `admin/admin123`
+          
+          ### System Requirements
+          - Java 21 or higher
+          - Memory: Minimum 512MB
+          
+          ### Checksums
+          See attached `.sha256` files for integrity verification.
+        draft: false
+        prerelease: false
+        files: |
+          irc4spring-${{ steps.get_version.outputs.VERSION }}.tar.gz
+          irc4spring-${{ steps.get_version.outputs.VERSION }}.zip
+          irc4spring-${{ steps.get_version.outputs.VERSION }}.tar.gz.sha256
+          irc4spring-${{ steps.get_version.outputs.VERSION }}.zip.sha256
+          target/irc-server-1.0.0.jar 
